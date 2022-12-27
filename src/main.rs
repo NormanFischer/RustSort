@@ -67,7 +67,7 @@ fn main() {
         vec: (1..101).collect(),
     };
     
-    self.vec.shuffle(&mut thread_rng());
+    app.vec.shuffle(&mut thread_rng());
 
     let mut events = Events::new(EventSettings::new()).ups(10);
     println!("{:?}", app.vec);
