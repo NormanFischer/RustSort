@@ -30,6 +30,7 @@ pub struct App {
     gl: GlGraphics,
     vec: Arc<Mutex<Vec<u32>>>,
     sorting: bool,
+    accesses: u32,
 }
 
 impl App {
@@ -38,14 +39,14 @@ impl App {
         self.gl.draw(args.viewport(), |c, gl| {
             clear(BLACK, gl);
             let len = self.vec.lock().unwrap().len();
+            let delta_width: f64 = (WIDTH as f64/ len as f64).into();
+            let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
             for i in 0..len {
                 let curr = self.vec.lock().unwrap()[i] as f64;
-                let delta_width: f64 = (WIDTH as f64/ len as f64).into();
-                let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
                 // rect: x1, y1, x2, y2
                 let x: f64 = i as f64 * delta_width;
                 let y: f64 = curr * delta_height;
-                rectangle(WHITE, [x, y + delta_height, delta_width, HEIGHT.into()], c.transform, gl);
+                rectangle(WHITE, [x, HEIGHT.into(), delta_width, -(y + delta_height)], c.transform, gl);
             }
         });
     }
@@ -65,22 +66,21 @@ fn main() {
     let mut window: Window = WindowSettings::new("Sorting algorithms", [WIDTH, HEIGHT])
         .graphics_api(opengl)
         .exit_on_esc(true)
-        .resizable(false)
+        .resizable(true)
         .build()
         .unwrap();
 
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        vec: Arc::new(Mutex::new((1..101).collect())),
+        vec: Arc::new(Mutex::new((1..1001).collect())),
         sorting: false,
+        accesses: 0,
     };
 
-    
-    app.vec.lock().unwrap().shuffle(&mut thread_rng());
     println!("{:?}", app.vec);
 
-    let mut events = Events::new(EventSettings::new()).ups(10);
+    let mut events = Events::new(EventSettings::new());
     
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
@@ -96,19 +96,25 @@ fn main() {
                 println!("Sorting");
                 let n = app.vec.lock().unwrap().len();
                 let thread_arc = app.vec.clone();
-                let thread = thread::spawn(move || {
+                let _thread = thread::spawn(move || {
                     for i in 0..n-1 {
                         for j in 0..n-i-1 {
                             if let Ok(mut vec) = thread_arc.lock() {
+                                app.accesses += 1;
+                                println!("Accesses: {}", app.accesses);
                                 if vec[j] > vec[j+1] {
                                     vec.swap(j, j+1);
                                 }
                                 drop(vec);
-                                thread::sleep(Duration::from_micros(10));
+                                thread::sleep(Duration::from_micros(1));
                             }
                         }   
                     }
                 });
+            }
+            if key == Key::Space {
+                app.vec.lock().unwrap().shuffle(&mut thread_rng());
+                println!("{:?}", app.vec);
             }
         }
     }
