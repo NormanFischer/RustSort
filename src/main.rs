@@ -3,13 +3,19 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
+mod sort;
+
+use core::time;
+use std::sync::{Mutex, Arc};
+use std::thread;
+use std::time::Duration;
+
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
-use piston::Size;
-use piston::EventLoop;
+use piston::{EventLoop, Button, Key, PressEvent};
 use rand::thread_rng;
 use rand::prelude::SliceRandom;
 
@@ -22,7 +28,8 @@ const HEIGHT: u32 = 480;
 
 pub struct App {
     gl: GlGraphics,
-    vec: Vec<u32>,
+    vec: Arc<Mutex<Vec<u32>>>,
+    sorting: bool,
 }
 
 impl App {
@@ -30,20 +37,21 @@ impl App {
         use graphics::*;
         self.gl.draw(args.viewport(), |c, gl| {
             clear(BLACK, gl);
-            for i in 0..self.vec.len() {
-                let mut curr = self.vec[i] as f64;
-                let delta_width: f64 = (WIDTH as f64/ self.vec.len() as f64).into();
-                let delta_height: f64 = (HEIGHT as f64/ self.vec.len() as f64).into();
+            let len = self.vec.lock().unwrap().len();
+            for i in 0..len {
+                let curr = self.vec.lock().unwrap()[i] as f64;
+                let delta_width: f64 = (WIDTH as f64/ len as f64).into();
+                let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
                 // rect: x1, y1, x2, y2
-                let mut x: f64 = i as f64 * delta_width;
-                let mut y: f64 = curr * delta_height;
-
+                let x: f64 = i as f64 * delta_width;
+                let y: f64 = curr * delta_height;
                 rectangle(WHITE, [x, y + delta_height, delta_width, HEIGHT.into()], c.transform, gl);
             }
         });
     }
 
     fn update(&mut self, args: &UpdateArgs) {
+
     }
 }
 
@@ -57,20 +65,23 @@ fn main() {
     let mut window: Window = WindowSettings::new("Sorting algorithms", [WIDTH, HEIGHT])
         .graphics_api(opengl)
         .exit_on_esc(true)
-        .resizable(true)
+        .resizable(false)
         .build()
         .unwrap();
 
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        vec: (1..101).collect(),
+        vec: Arc::new(Mutex::new((1..101).collect())),
+        sorting: false,
     };
+
     
-    app.vec.shuffle(&mut thread_rng());
+    app.vec.lock().unwrap().shuffle(&mut thread_rng());
+    println!("{:?}", app.vec);
 
     let mut events = Events::new(EventSettings::new()).ups(10);
-    println!("{:?}", app.vec);
+    
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
             app.render(&args);
@@ -78,6 +89,27 @@ fn main() {
 
         if let Some(args) = e.update_args() {
             app.update(&args);
+        }
+
+        if let Some(Button::Keyboard(key)) = e.press_args() {
+            if key == Key::C {
+                println!("Sorting");
+                let n = app.vec.lock().unwrap().len();
+                let thread_arc = app.vec.clone();
+                let thread = thread::spawn(move || {
+                    for i in 0..n-1 {
+                        for j in 0..n-i-1 {
+                            if let Ok(mut vec) = thread_arc.lock() {
+                                if vec[j] > vec[j+1] {
+                                    vec.swap(j, j+1);
+                                }
+                                drop(vec);
+                                thread::sleep(Duration::from_micros(10));
+                            }
+                        }   
+                    }
+                });
+            }
         }
     }
 }
