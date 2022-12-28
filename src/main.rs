@@ -92,26 +92,48 @@ fn main() {
         }
 
         if let Some(Button::Keyboard(key)) = e.press_args() {
-            if key == Key::C {
-                println!("Sorting");
-                let n = app.vec.lock().unwrap().len();
-                let thread_arc = app.vec.clone();
-                let _thread = thread::spawn(move || {
+            let mut guard = app.vec.lock().unwrap();
+            let n = guard.len();
+            drop(guard);
+            
+            let thread_arc = app.vec.clone();
+
+            let _thread = thread::spawn(move || {
+                if key == Key::C {
                     for i in 0..n-1 {
                         for j in 0..n-i-1 {
+                            thread::sleep(Duration::from_micros(1));
                             if let Ok(mut vec) = thread_arc.lock() {
                                 app.accesses += 1;
                                 println!("Accesses: {}", app.accesses);
                                 if vec[j] > vec[j+1] {
                                     vec.swap(j, j+1);
                                 }
-                                drop(vec);
-                                thread::sleep(Duration::from_micros(1));
                             }
                         }   
                     }
-                });
-            }
+                }
+                //Selection Sort
+                if key == Key::D {
+                    for i in 0..n-1 {
+                        let mut minindex = i;
+                        for j in (i+1)..n {
+                            if let Ok(mut vec) = thread_arc.lock() {
+                                if vec[j] < vec[minindex] {
+                                    minindex = j;
+                                }
+                                
+                            }
+                            thread::sleep(Duration::from_micros(1));
+                        }
+                        if let Ok(mut vec) = thread_arc.lock() {
+                            vec.swap(i, minindex);
+                        }
+                    }
+                }
+                
+            });
+
             if key == Key::Space {
                 app.vec.lock().unwrap().shuffle(&mut thread_rng());
                 println!("{:?}", app.vec);
