@@ -5,7 +5,6 @@ extern crate piston;
 
 mod sort;
 
-use core::time;
 use std::sync::{Mutex, Arc};
 use std::thread;
 use std::time::Duration;
@@ -15,9 +14,10 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
-use piston::{EventLoop, Button, Key, PressEvent};
+use piston::{Button, Key, PressEvent};
 use rand::thread_rng;
 use rand::prelude::SliceRandom;
+use sort::input_sort;
 
 
 const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
@@ -54,6 +54,37 @@ impl App {
     fn update(&mut self, args: &UpdateArgs) {
 
     }
+
+    fn press(&mut self, key: Key) {
+        let guard = self.vec.lock().unwrap();
+        let n = guard.len();
+        drop(guard);
+        let thread_arc = self.vec.clone();
+        let _thread = thread::spawn(move || {
+            input_sort(thread_arc, key, n);
+            /* 
+            if let Ok(vec) = thread_arc.lock() {
+                if is_sorted(vec.to_vec()) {
+                    println!("Sorted!");
+                }
+            }
+            */
+        });
+        //Shuffle
+        if key == Key::Space {
+            self.vec.lock().unwrap().shuffle(&mut thread_rng());
+            println!("{:?}", self.vec);
+        }
+    }
+}
+
+fn is_sorted(vec: Vec<u32>) -> bool {
+    for i in 0..(vec.len() - 2) {
+        if vec[i] > vec[i + 1] {
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -63,7 +94,7 @@ fn main() {
     let opengl = OpenGL::V3_2;
   
     // Create a Glutin window.
-    let mut window: Window = WindowSettings::new("Sorting algorithms", [WIDTH, HEIGHT])
+    let mut window: Window = WindowSettings::new("Sorting Algorithms", [WIDTH, HEIGHT])
         .graphics_api(opengl)
         .exit_on_esc(true)
         .resizable(true)
@@ -83,6 +114,7 @@ fn main() {
     let mut events = Events::new(EventSettings::new());
     
     while let Some(e) = events.next(&mut window) {
+
         if let Some(args) = e.render_args() {
             app.render(&args);
         }
@@ -92,52 +124,8 @@ fn main() {
         }
 
         if let Some(Button::Keyboard(key)) = e.press_args() {
-            let mut guard = app.vec.lock().unwrap();
-            let n = guard.len();
-            drop(guard);
-            
-            let thread_arc = app.vec.clone();
-
-            let _thread = thread::spawn(move || {
-                if key == Key::C {
-                    for i in 0..n-1 {
-                        for j in 0..n-i-1 {
-                            thread::sleep(Duration::from_micros(1));
-                            if let Ok(mut vec) = thread_arc.lock() {
-                                app.accesses += 1;
-                                println!("Accesses: {}", app.accesses);
-                                if vec[j] > vec[j+1] {
-                                    vec.swap(j, j+1);
-                                }
-                            }
-                        }   
-                    }
-                }
-                //Selection Sort
-                if key == Key::D {
-                    for i in 0..n-1 {
-                        let mut minindex = i;
-                        for j in (i+1)..n {
-                            if let Ok(mut vec) = thread_arc.lock() {
-                                if vec[j] < vec[minindex] {
-                                    minindex = j;
-                                }
-                                
-                            }
-                            thread::sleep(Duration::from_micros(1));
-                        }
-                        if let Ok(mut vec) = thread_arc.lock() {
-                            vec.swap(i, minindex);
-                        }
-                    }
-                }
-                
-            });
-
-            if key == Key::Space {
-                app.vec.lock().unwrap().shuffle(&mut thread_rng());
-                println!("{:?}", app.vec);
-            }
+            app.press(key);
         }
+            
     }
 }
