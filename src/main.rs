@@ -105,7 +105,7 @@ fn main() {
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        vec: Arc::new(Mutex::new((1..1001).collect())),
+        vec: Arc::new(Mutex::new((1..25001).collect())),
         sorting: false,
         accesses: 0,
     };
