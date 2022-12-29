@@ -2,7 +2,6 @@ extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
-extern crate owning_ref;
 
 mod sort;
 
@@ -23,6 +22,7 @@ use sort::input_sort;
 
 const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 
 const WIDTH: u32 = 720;
 const HEIGHT: u32 = 480;
@@ -61,7 +61,7 @@ impl App {
         let n = guard.len();
         drop(guard);
         let thread_arc = self.vec.clone();
-        let _thread = thread::spawn(move || {
+        let thread = thread::spawn(move || {
             input_sort(thread_arc, key, n);
             /* 
             if let Ok(vec) = thread_arc.lock() {
@@ -105,7 +105,7 @@ fn main() {
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        vec: Arc::new(Mutex::new((1..25001).collect())),
+        vec: Arc::new(Mutex::new((1..10001).collect())),
         sorting: false,
         accesses: 0,
     };

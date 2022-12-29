@@ -1,20 +1,20 @@
 use std::{thread, sync::{Arc, Mutex}, time::Duration};
-use owning_ref::{ArcRef, MutexGuardRef};
 use piston::Key;
 
 pub fn input_sort(thread_arc: Arc<Mutex<Vec<u32>>>, key: Key, n: usize) {
-    let rc = thread_arc.into();
-    match key {
+    let rc = thread_arc;
         //Match sort commands
-        Key::D1 => bubblesort(rc),
-        Key::D2 => selectionsort(rc),
+    match key {
+        Key::D1 => bubblesort(&rc),
+        Key::D2 => selectionsort(&rc),
         Key::D3 => mergesort(&rc, 0, n - 1),
+        Key::D4 => quicksort(&rc, 0, (n - 1) as isize),
         _ => println!("Unimplemented"),
     };
 }
 
 
-fn bubblesort(rc: ArcRef<Mutex<Vec<u32>>>) {
+fn bubblesort(rc: &Arc<Mutex<Vec<u32>>>) {
     let n = rc.lock().unwrap().len();
     for i in 0..n-1 {
         for j in 0..n-i-1 {
@@ -29,7 +29,7 @@ fn bubblesort(rc: ArcRef<Mutex<Vec<u32>>>) {
     println!("Done sorting"); 
 }
 
-fn selectionsort(rc: ArcRef<Mutex<Vec<u32>>>) {
+fn selectionsort(rc: &Arc<Mutex<Vec<u32>>>) {
     let n = rc.lock().unwrap().len();
     for i in 0..n-1 {
         let mut minindex = i;
@@ -49,14 +49,14 @@ fn selectionsort(rc: ArcRef<Mutex<Vec<u32>>>) {
 }
 
 
-fn mergesort<'a>(rc: &'a ArcRef<Mutex<Vec<u32>>>, left: usize, right: usize) {
+fn mergesort<'a>(rc: &'a Arc<Mutex<Vec<u32>>>, left: usize, right: usize) {
     if left < right {
         println!("Merging!");
         let m = (left + right) / 2;
 
         mergesort(rc, left, m);
         mergesort(rc, m + 1, right);
-
+        
         //Create left and right subarrays
         let mut left_vec = Vec::new();
         let mut right_vec = Vec::new();
@@ -116,3 +116,30 @@ fn mergesort<'a>(rc: &'a ArcRef<Mutex<Vec<u32>>>, left: usize, right: usize) {
     }
 }
 
+fn quicksort<'a>(rc: &'a Arc<Mutex<Vec<u32>>>, left: isize, right: isize) {
+    let pivotidx: isize;
+    if left < right {
+        pivotidx = partition(rc, left, right);
+        quicksort(rc, left, pivotidx - 1);
+        quicksort(rc, pivotidx + 1, right);
+    }
+}
+
+fn partition<'a>(rc: &'a Arc<Mutex<Vec<u32>>>, left: isize, right: isize) -> isize {
+    let pivot: u32 = rc.lock().unwrap()[right as usize];
+    let mut t = left;
+    for i in left..right {
+        if let Ok(mut vec) = rc.lock() {
+            if vec[i as usize] <= pivot {
+                vec.swap(t as usize, i as usize);
+                t = t + 1;
+            }
+        }
+        thread::sleep(Duration::from_micros(1));
+    }
+    if let Ok(mut vec) = rc.lock() {
+        vec.swap(t as usize, right as usize);
+    }
+    thread::sleep(Duration::from_micros(1));
+    return t;
+}
