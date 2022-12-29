@@ -1,6 +1,4 @@
-use std::{thread, time::Duration};
-
-
+use std::sync::{Arc, Mutex};
 
 //Shared resources for application
 pub struct ShareWrapper{
@@ -8,4 +6,6 @@ pub struct ShareWrapper{
     pub sorting: bool,
 }
 
-impl ShareWrapper{}
+impl ShareWrapper{
+    
+}

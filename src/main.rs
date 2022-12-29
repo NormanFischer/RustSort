@@ -6,9 +6,9 @@ extern crate piston;
 mod sort;
 mod sharewrapper;
 mod app;
+mod constants;
 
 use std::sync::{Mutex, Arc};
-
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventSettings, Events};
@@ -16,10 +16,8 @@ use piston::input::{RenderEvent, UpdateEvent};
 use piston::window::WindowSettings;
 use piston::{Button, PressEvent};
 use sharewrapper::ShareWrapper;
-
-
-const WIDTH: u32 = 720;
-const HEIGHT: u32 = 480;
+use constants::WIDTH;
+use constants::HEIGHT;
 
 fn is_sorted(vec: Vec<u32>) -> bool {
     for i in 0..(vec.len() - 2) {

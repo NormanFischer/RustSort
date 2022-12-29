@@ -1,17 +1,13 @@
 
-use std::{sync::{Arc, Mutex}, thread};
+use std::{sync::{Arc, Mutex, mpsc}, thread};
 use opengl_graphics::GlGraphics;
 use piston::{RenderArgs, UpdateArgs, Key};
 use rand::{seq::SliceRandom, thread_rng};
-
-use crate::{sharewrapper::ShareWrapper, sort::input_sort};
-
-const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
-const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
-
-const WIDTH: u32 = 720;
-const HEIGHT: u32 = 480;
+use crate::{sharewrapper::ShareWrapper, sort::{self}};
+use crate::constants::BLACK;
+use crate::constants::WHITE;
+use crate::constants::WIDTH;
+use crate::constants::HEIGHT;
 
 pub struct App {
     pub gl: GlGraphics,
@@ -46,23 +42,27 @@ impl App {
     pub fn press(&mut self, key: Key) {
         let vec = &mut self.sw.lock().unwrap().vec;
         let n = vec.len();
-
-        let thread_arc = self.sw.clone();
-        let thread = thread::spawn(move || {
-            input_sort(thread_arc, key, n);
-            /*
-            if let Ok(vec) = thread_arc.lock() {
-                if is_sorted(vec.to_vec()) {
-                    println!("Sorted!");
-                }
-            }
-            */
-        });
-
         //Shuffle
         if key == Key::Space {
             vec.shuffle(&mut thread_rng());
             println!("{:?}", vec);
         }
+        self.input_sort(key, n);
     }
+
+    fn input_sort(&self, key: Key, n: usize) {
+    //Match sort commands
+    let rc = self.sw.clone();
+    let _thread = thread::spawn(move || {
+        match key {
+            Key::D1 => sort::bubblesort(&rc),
+            Key::D2 => sort::selectionsort(&rc),
+            Key::D3 => sort::mergesort(&rc, 0, n - 1),
+            Key::D4 => sort::quicksort(&rc, 0, (n - 1) as isize),
+            Key::D0 => rc.lock().unwrap().sorting = false,
+            _ => println!("Unimplemented"),
+        };
+        rc.lock().unwrap().sorting = false;
+    });
+}
 }
