@@ -4,6 +4,7 @@ extern crate opengl_graphics;
 extern crate piston;
 
 mod sort;
+mod sharewrapper;
 
 use std::sync::{Mutex, Arc};
 use std::thread;
@@ -18,6 +19,7 @@ use piston::{Button, Key, PressEvent};
 use rand::thread_rng;
 use rand::prelude::SliceRandom;
 use sort::input_sort;
+use sharewrapper::ShareWrapper;
 
 
 const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
@@ -29,9 +31,7 @@ const HEIGHT: u32 = 480;
 
 pub struct App {
     gl: GlGraphics,
-    vec: Arc<Mutex<Vec<u32>>>,
-    sorting: bool,
-    accesses: u32,
+    sw: Arc<Mutex<ShareWrapper>>,
 }
 
 impl App {
@@ -39,11 +39,14 @@ impl App {
         use graphics::*;
         self.gl.draw(args.viewport(), |c, gl| {
             clear(BLACK, gl);
-            let len = self.vec.lock().unwrap().len();
+
+            let vec = &self.sw.lock().unwrap().vec;
+            let len = vec.len();
             let delta_width: f64 = (WIDTH as f64/ len as f64).into();
             let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
+
             for i in 0..len {
-                let curr = self.vec.lock().unwrap()[i] as f64;
+                let curr = vec[i] as f64;
                 // rect: x1, y1, x2, y2
                 let x: f64 = i as f64 * delta_width;
                 let y: f64 = curr * delta_height;
@@ -57,13 +60,13 @@ impl App {
     }
 
     fn press(&mut self, key: Key) {
-        let guard = self.vec.lock().unwrap();
-        let n = guard.len();
-        drop(guard);
-        let thread_arc = self.vec.clone();
+        let vec = &mut self.sw.lock().unwrap().vec;
+        let n = vec.len();
+
+        let thread_arc = self.sw.clone();
         let thread = thread::spawn(move || {
             input_sort(thread_arc, key, n);
-            /* 
+            /*
             if let Ok(vec) = thread_arc.lock() {
                 if is_sorted(vec.to_vec()) {
                     println!("Sorted!");
@@ -71,10 +74,11 @@ impl App {
             }
             */
         });
+
         //Shuffle
         if key == Key::Space {
-            self.vec.lock().unwrap().shuffle(&mut thread_rng());
-            println!("{:?}", self.vec);
+            vec.shuffle(&mut thread_rng());
+            println!("{:?}", vec);
         }
     }
 }
@@ -105,12 +109,10 @@ fn main() {
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        vec: Arc::new(Mutex::new((1..10001).collect())),
-        sorting: false,
-        accesses: 0,
+        sw: Arc::new(Mutex::new(ShareWrapper { vec: (1..10001).collect(), sorting: false,})),
     };
 
-    println!("{:?}", app.vec);
+    println!("{:?}", app.sw.lock().unwrap().vec);
 
     let mut events = Events::new(EventSettings::new());
     
