@@ -1,27 +1,36 @@
 use std::{thread, sync::{Arc, Mutex}, time::Duration};
-use crate::{sharewrapper::ShareWrapper};
+use crate::{sharewrapper::{ShareWrapper, Status}};
 
 
-fn tick_checker(rc: &Arc<Mutex<ShareWrapper>>) -> bool{
-    thread::sleep(Duration::from_micros(1));
-    if let Ok(guard) = rc.lock() {
-        let sorting = guard.sorting;
-        if sorting == false {
-            return false;
-        } else {
-            let paused = guard.paused;
-            if paused == true {
-                println!("Paused");
-            }
-            return true;
-        }
+fn tick_checker(rc: &Arc<Mutex<ShareWrapper>>) {
+    //Extract status from sharewrapper
+    let guard = rc.lock().unwrap();
+    let status = &guard.status;
+    let mut status_val = match status {
+        Status::Paused => Status::Paused,
+        Status::Sorting => Status::Sorting,
+    };
+    drop(guard);
+
+    //If status is paused, loop until unpaused
+    while status_val == Status::Paused {
+        let guard = rc.lock().unwrap();
+        let status = &guard.status;
+        status_val = match status {
+        Status::Paused => Status::Paused,
+        Status::Sorting => Status::Sorting,
+        };
+    
+        drop(status);
     }
-    return false;
+
+    //Tick
+    thread::sleep(Duration::from_micros(1));
 }
 
 
 pub fn bubblesort(rc: &Arc<Mutex<ShareWrapper>>) {
-    rc.lock().unwrap().sorting = true;
+    rc.lock().unwrap().status = Status::Sorting;
     let n = &rc.lock().unwrap().vec.len();
     for i in 0..n-1 {
         for j in 0..n-i-1 {
@@ -31,9 +40,7 @@ pub fn bubblesort(rc: &Arc<Mutex<ShareWrapper>>) {
                         vec.swap(j, j+1);
                     }
                 }
-                if tick_checker(rc) == false {
-                    return; 
-                } 
+                tick_checker(rc);
             }
     }
 }
@@ -41,7 +48,7 @@ pub fn bubblesort(rc: &Arc<Mutex<ShareWrapper>>) {
 
 
 pub fn selectionsort(rc: &Arc<Mutex<ShareWrapper>>) {
-    rc.lock().unwrap().sorting = true;
+    rc.lock().unwrap().status = Status::Sorting;
     let n = &rc.lock().unwrap().vec.len();
     for i in 0..n-1 {
         let mut minindex = i;
@@ -53,9 +60,7 @@ pub fn selectionsort(rc: &Arc<Mutex<ShareWrapper>>) {
                 }
                 
             }
-            if tick_checker(rc) == false {
-                return; 
-            } 
+            tick_checker(rc);
         }   
         if let Ok(mut vec) = rc.lock() {
             let vec = &mut vec.vec;
@@ -66,18 +71,14 @@ pub fn selectionsort(rc: &Arc<Mutex<ShareWrapper>>) {
 
 
 pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize) {
-    rc.lock().unwrap().sorting = true;
+    rc.lock().unwrap().status = Status::Sorting;
     if left < right {
         let m = (left + right) / 2;
 
         mergesort(rc, left, m);
-        if tick_checker(rc) == false {
-            return; 
-        } 
+        tick_checker(rc);
         mergesort(rc, m + 1, right);
-        if tick_checker(rc) == false {
-            return; 
-        } 
+        tick_checker(rc);
         //Create left and right subarrays
         let mut left_vec = Vec::new();
         let mut right_vec = Vec::new();
@@ -109,18 +110,14 @@ pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize
                     let vec = &mut vec.vec;
                     vec[k] = left_vec[i];
                 }
-                if tick_checker(rc) == false {
-                    return; 
-                } 
+                tick_checker(rc);
                 i = i + 1;
             } else {
                 if let Ok(mut vec) = rc.lock() {
                     let vec = &mut vec.vec;
                     vec[k] = right_vec[j];
                 }
-                if tick_checker(rc) == false {
-                    return; 
-                } 
+                tick_checker(rc);
                 j = j + 1;
             }
             k = k + 1;
@@ -131,9 +128,7 @@ pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize
                 let vec = &mut vec.vec;
                 vec[k] = left_vec[i];
             }
-            if tick_checker(rc) == false {
-                return; 
-            } 
+            tick_checker(rc);
             i = i + 1;
             k = k + 1;
         }
@@ -142,9 +137,7 @@ pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize
                 let vec = &mut vec.vec;
                 vec[k] = right_vec[j];
             }
-            if tick_checker(rc) == false {
-                return; 
-            } 
+            tick_checker(rc);
             j = j + 1;
             k = k + 1;
         }
@@ -152,7 +145,7 @@ pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize
 }
 
 pub fn quicksort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: isize, right: isize) {
-    rc.lock().unwrap().sorting = true;
+    rc.lock().unwrap().status = Status::Sorting;
     let pivotidx: isize;
     if left < right {
         pivotidx = partition(rc, left, right);
@@ -178,17 +171,13 @@ fn partition<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: isize, right: isize) ->
                 t = t + 1;
             }
         }
-        if tick_checker(rc) == false {
-            return -100; 
-        } 
+        tick_checker(rc);
     }
     if let Ok(mut vec) = rc.lock() {
         let vec = &mut vec.vec;
         vec.swap(t as usize, right as usize);
     }
-    if tick_checker(rc) == false {
-        return -100; 
-    } 
+    tick_checker(rc);
     return t;
 }
 

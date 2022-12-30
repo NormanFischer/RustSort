@@ -19,6 +19,8 @@ use sharewrapper::ShareWrapper;
 use constants::WIDTH;
 use constants::HEIGHT;
 
+use crate::sharewrapper::Status;
+
 fn is_sorted(vec: Vec<u32>) -> bool {
     for i in 0..(vec.len() - 2) {
         if vec[i] > vec[i + 1] {
@@ -43,7 +45,7 @@ fn main() {
     // Create a new game and run it.
     let mut app = app::App {
         gl: GlGraphics::new(opengl),
-        sw: Arc::new(Mutex::new(ShareWrapper { vec: (1..101).collect(), sorting: false, paused: false})),
+        sw: Arc::new(Mutex::new(ShareWrapper { vec: (1..1001).collect(), status: Status::Paused, tickrate: 1})),
     };
 
     println!("{:?}", app.sw.lock().unwrap().vec);

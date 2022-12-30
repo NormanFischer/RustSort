@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex, mpsc}, thread};
 use opengl_graphics::GlGraphics;
 use piston::{RenderArgs, UpdateArgs, Key};
 use rand::{seq::SliceRandom, thread_rng};
-use crate::{sharewrapper::ShareWrapper, sort::{self}};
+use crate::{sharewrapper::{ShareWrapper, Status}, sort::{self}};
 use crate::constants::BLACK;
 use crate::constants::WHITE;
 use crate::constants::WIDTH;
@@ -13,8 +13,6 @@ pub struct App {
     pub gl: GlGraphics,
     pub sw: Arc<Mutex<ShareWrapper>>,
 }
-
-
 
 impl App {
     pub fn render(&mut self, args: &RenderArgs) {
@@ -43,23 +41,41 @@ impl App {
 
     pub fn press(&mut self, key: Key) {
         let rc = self.sw.clone();
-        App::input_sort(&rc, key)
+        App::input(&rc, key)
     }
 
-    fn input_sort(rc: &Arc<Mutex<ShareWrapper>>, key: Key) {
+    fn input(rc: &Arc<Mutex<ShareWrapper>>, key: Key) {
         //Match sort commands
+        let rc = rc.clone();
+        if key == Key::D0 {
+            App::pause_unpause(&rc);
+        }
+        let _thread = thread::spawn(move || {
+            match key {
+                Key::Space => Self::shuffle(&rc),
+                //Process sorts
+                _ => App::sort_input(&rc, key),
+            };
+        });
+    }
 
-        match key {
-            Key::Space => Self::shuffle(&rc), 
+    fn sort_input(rc: &Arc<Mutex<ShareWrapper>>, key: Key) {
+        match key { 
             Key::D1 => sort::bubblesort(&rc),
             Key::D2 => sort::selectionsort(&rc),
             Key::D3 => sort::mergesort(&rc, 0, Self::get_len(&rc) - 1),
             Key::D4 => sort::quicksort(&rc, 0, (Self::get_len(&rc) - 1) as isize),
-            //Stop
-            Key::D0 => rc.lock().unwrap().sorting = false,
-            _ => println!("Unimplemented"),
-        };
-        println!("Done");
+            _ => {},
+        }
+    }
+
+    fn pause_unpause(rc: &Arc<Mutex<ShareWrapper>>) {
+        if let Ok(mut guard) = rc.lock() {
+            match guard.status {
+                Status::Sorting => guard.status = Status::Paused,
+                Status::Paused => guard.status = Status::Sorting,
+            }
+        }
     }
 
     fn shuffle(rc: &Arc<Mutex<ShareWrapper>>) {
