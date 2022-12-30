@@ -14,6 +14,8 @@ pub struct App {
     pub sw: Arc<Mutex<ShareWrapper>>,
 }
 
+
+
 impl App {
     pub fn render(&mut self, args: &RenderArgs) {
         use graphics::*;
@@ -40,29 +42,39 @@ impl App {
     }
 
     pub fn press(&mut self, key: Key) {
-        let vec = &mut self.sw.lock().unwrap().vec;
-        let n = vec.len();
-        //Shuffle
-        if key == Key::Space {
-            vec.shuffle(&mut thread_rng());
-            println!("{:?}", vec);
-        }
-        self.input_sort(key, n);
+        let rc = self.sw.clone();
+        App::input_sort(&rc, key)
     }
 
-    fn input_sort(&self, key: Key, n: usize) {
-    //Match sort commands
-    let rc = self.sw.clone();
-    let _thread = thread::spawn(move || {
+    fn input_sort(rc: &Arc<Mutex<ShareWrapper>>, key: Key) {
+        //Match sort commands
+
         match key {
+            Key::Space => Self::shuffle(&rc), 
             Key::D1 => sort::bubblesort(&rc),
             Key::D2 => sort::selectionsort(&rc),
-            Key::D3 => sort::mergesort(&rc, 0, n - 1),
-            Key::D4 => sort::quicksort(&rc, 0, (n - 1) as isize),
+            Key::D3 => sort::mergesort(&rc, 0, Self::get_len(&rc) - 1),
+            Key::D4 => sort::quicksort(&rc, 0, (Self::get_len(&rc) - 1) as isize),
+            //Stop
             Key::D0 => rc.lock().unwrap().sorting = false,
             _ => println!("Unimplemented"),
         };
-        rc.lock().unwrap().sorting = false;
-    });
-}
+        println!("Done");
+    }
+
+    fn shuffle(rc: &Arc<Mutex<ShareWrapper>>) {
+        if let Ok(mut guard) = rc.lock() {
+            let vec = &mut guard.vec;
+            vec.shuffle(&mut thread_rng());
+        }
+    }
+
+    fn get_len(rc: &Arc<Mutex<ShareWrapper>>) -> usize {
+        if let Ok(guard) = rc.lock() {
+            let vec = &guard.vec;
+            return vec.len();
+        } else {
+            panic!();
+        }
+    }
 }

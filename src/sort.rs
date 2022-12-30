@@ -1,15 +1,18 @@
 use std::{thread, sync::{Arc, Mutex}, time::Duration};
-use piston::Key;
-use crate::{sharewrapper::ShareWrapper, app::App};
+use crate::{sharewrapper::ShareWrapper};
 
 
 fn tick_checker(rc: &Arc<Mutex<ShareWrapper>>) -> bool{
     thread::sleep(Duration::from_micros(1));
-    if let Ok(sorting) = rc.lock() {
-        let sorting = sorting.sorting;
+    if let Ok(guard) = rc.lock() {
+        let sorting = guard.sorting;
         if sorting == false {
             return false;
         } else {
+            let paused = guard.paused;
+            if paused == true {
+                println!("Paused");
+            }
             return true;
         }
     }

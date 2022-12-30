@@ -43,7 +43,7 @@ fn main() {
     // Create a new game and run it.
     let mut app = app::App {
         gl: GlGraphics::new(opengl),
-        sw: Arc::new(Mutex::new(ShareWrapper { vec: (1..10001).collect(), sorting: false,})),
+        sw: Arc::new(Mutex::new(ShareWrapper { vec: (1..101).collect(), sorting: false, paused: false})),
     };
 
     println!("{:?}", app.sw.lock().unwrap().vec);

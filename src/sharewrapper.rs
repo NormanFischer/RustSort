@@ -4,8 +4,11 @@ use std::sync::{Arc, Mutex};
 pub struct ShareWrapper{
     pub vec: Vec<u32>,
     pub sorting: bool,
+    pub paused: bool,
 }
 
 impl ShareWrapper{
-    
+    pub fn getlength() {
+
+    }
 }
