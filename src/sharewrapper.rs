@@ -1,7 +1,7 @@
 //Wrapper for shared resources
 //Functions that allow safe access to shared resources
 
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, usize};
 use rand::{thread_rng, seq::SliceRandom};
 
 use crate::shared::{Shared, Status};
@@ -17,6 +17,7 @@ impl ShareWrapper {
             match guard.status {
                 Status::Sorting => Status::Sorting,
                 Status::Paused => Status::Paused,
+                Status::NotSorting => Status::NotSorting,
             }
         } else {
             panic!("get_status")
@@ -29,6 +30,7 @@ impl ShareWrapper {
             match guard.status {
                 Status::Sorting => guard.status = Status::Paused,
                 Status::Paused => guard.status = Status::Sorting,
+                Status::NotSorting => {},
             }
         }
     }
@@ -48,6 +50,20 @@ impl ShareWrapper {
             return vec.len();
         } else {
             panic!();
+        }
+    }
+
+    pub fn set_current(&mut self, idx: usize) {
+        if let Ok(mut guard) = self.arc.lock() {
+            guard.current_idx = Some(idx);
+        }
+    }
+
+    pub fn get_current_idx(&self) -> usize {
+        if let Ok(guard) = self.arc.lock() {
+            return guard.current_idx.unwrap();
+        } else {
+            panic!("Error returning idx")
         }
     }
 

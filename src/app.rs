@@ -1,9 +1,10 @@
 
-use std::{sync::{Arc, Mutex}, thread};
+use std::{thread};
 use opengl_graphics::GlGraphics;
 use piston::{RenderArgs, UpdateArgs, Key};
-use crate::{constants::BLACK, sharewrapper::ShareWrapper, shared::{Shared, Status}, sort};
+use crate::{constants::BLACK, sharewrapper::ShareWrapper, shared::{Status}, sort};
 use crate::constants::WHITE;
+use crate::constants::GREEN;
 use crate::constants::WIDTH;
 use crate::constants::HEIGHT;
 
@@ -17,18 +18,24 @@ impl App {
         use graphics::*;
         self.gl.draw(args.viewport(), |c, gl| {
             clear(BLACK, gl);
-
-            let vec = &self.sw.arc.lock().unwrap().vec;
+            let sw = &self.sw.arc.lock().unwrap();
+            let vec = &sw.vec;
             let len = vec.len();
             let delta_width: f64 = (WIDTH as f64/ len as f64).into();
             let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
 
+
             for i in 0..len {
+                let current_color = sw.current_idx; 
                 let curr = vec[i] as f64;
+                let color = match current_color {
+                    Some(idx) => if i == idx {GREEN} else {WHITE},
+                    None => WHITE
+                };
                 // rect: x1, y1, x2, y2
                 let x: f64 = i as f64 * delta_width;
                 let y: f64 = curr * delta_height;
-                rectangle(WHITE, [x, HEIGHT.into(), delta_width, -(y + delta_height)], c.transform, gl);
+                rectangle(color, [x, HEIGHT.into(), delta_width, -(y + delta_height)], c.transform, gl);
             }
         });
     }

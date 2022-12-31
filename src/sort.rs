@@ -9,6 +9,7 @@ fn tick_checker(rc: &Arc<Mutex<Shared>>) {
     let mut status_val = match status {
         Status::Paused => Status::Paused,
         Status::Sorting => Status::Sorting,
+        Status::NotSorting => Status::NotSorting,
     };
     drop(guard);
 
@@ -19,13 +20,14 @@ fn tick_checker(rc: &Arc<Mutex<Shared>>) {
         status_val = match status {
         Status::Paused => Status::Paused,
         Status::Sorting => Status::Sorting,
+        Status::NotSorting => Status::NotSorting,
         };
     
         drop(status);
     }
 
     //Tick
-    thread::sleep(Duration::from_micros(1));
+    thread::sleep(Duration::from_micros(5000));
 }
 
 
@@ -34,14 +36,20 @@ pub fn bubblesort(rc: &Arc<Mutex<Shared>>) {
     let n = &rc.lock().unwrap().vec.len();
     for i in 0..n-1 {
         for j in 0..n-i-1 {
-                if let Ok(mut vec) = rc.lock() {
-                    let vec = &mut vec.vec;
-                    if vec[j] > vec[j+1] {
-                        vec.swap(j, j+1);
-                    }
-                }
-                tick_checker(rc);
+            if let Ok(mut guard) = rc.lock() {
+                guard.current_idx = Some(j);
             }
+            if let Ok(mut vec) = rc.lock() {
+                let vec = &mut vec.vec;
+                if vec[j] > vec[j+1] {
+                    vec.swap(j, j+1);
+                }
+            }
+            tick_checker(rc);
+        }
+    }
+    if let Ok(mut guard) = rc.lock() {
+        guard.current_idx = None;
     }
 }
 

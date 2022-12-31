@@ -2,6 +2,7 @@ extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
+extern crate find_folder;
 
 mod sort;
 mod shared;
@@ -34,6 +35,7 @@ fn is_sorted(vec: Vec<u32>) -> bool {
 fn main() {
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
+    let vector_size = 101;
   
     // Create a Glutin window.
     let mut window: Window = WindowSettings::new("Sorting Algorithms", [WIDTH, HEIGHT])
@@ -48,7 +50,7 @@ fn main() {
         gl: GlGraphics::new(opengl),
         sw: ShareWrapper {
                 arc: Arc::new(Mutex::new(
-                              Shared { vec: (1..10001).collect(), status: Status::Paused, tickrate: 1}))},
+                              Shared { vec: (1..vector_size).collect(), status: Status::Paused, tickrate: 1, current_idx: None}))},
     };
 
     println!("{:?}", app.sw.arc.lock().unwrap().vec);
