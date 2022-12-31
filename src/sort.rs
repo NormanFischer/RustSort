@@ -1,8 +1,8 @@
 use std::{thread, sync::{Arc, Mutex}, time::Duration};
-use crate::{sharewrapper::{ShareWrapper, Status}};
+use crate::shared::{Status, Shared};
 
 
-fn tick_checker(rc: &Arc<Mutex<ShareWrapper>>) {
+fn tick_checker(rc: &Arc<Mutex<Shared>>) {
     //Extract status from sharewrapper
     let guard = rc.lock().unwrap();
     let status = &guard.status;
@@ -12,7 +12,7 @@ fn tick_checker(rc: &Arc<Mutex<ShareWrapper>>) {
     };
     drop(guard);
 
-    //If status is paused, loop until unpaused
+    //If status is paused, loop until unpaused, keep extracting status
     while status_val == Status::Paused {
         let guard = rc.lock().unwrap();
         let status = &guard.status;
@@ -29,7 +29,7 @@ fn tick_checker(rc: &Arc<Mutex<ShareWrapper>>) {
 }
 
 
-pub fn bubblesort(rc: &Arc<Mutex<ShareWrapper>>) {
+pub fn bubblesort(rc: &Arc<Mutex<Shared>>) {
     rc.lock().unwrap().status = Status::Sorting;
     let n = &rc.lock().unwrap().vec.len();
     for i in 0..n-1 {
@@ -47,7 +47,7 @@ pub fn bubblesort(rc: &Arc<Mutex<ShareWrapper>>) {
 
 
 
-pub fn selectionsort(rc: &Arc<Mutex<ShareWrapper>>) {
+pub fn selectionsort(rc: &Arc<Mutex<Shared>>) {
     rc.lock().unwrap().status = Status::Sorting;
     let n = &rc.lock().unwrap().vec.len();
     for i in 0..n-1 {
@@ -70,7 +70,7 @@ pub fn selectionsort(rc: &Arc<Mutex<ShareWrapper>>) {
 }
 
 
-pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize) {
+pub fn mergesort<'a>(rc: &'a Arc<Mutex<Shared>>, left: usize, right: usize) {
     rc.lock().unwrap().status = Status::Sorting;
     if left < right {
         let m = (left + right) / 2;
@@ -144,7 +144,7 @@ pub fn mergesort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: usize, right: usize
     }
 }
 
-pub fn quicksort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: isize, right: isize) {
+pub fn quicksort<'a>(rc: &'a Arc<Mutex<Shared>>, left: isize, right: isize) {
     rc.lock().unwrap().status = Status::Sorting;
     let pivotidx: isize;
     if left < right {
@@ -160,7 +160,7 @@ pub fn quicksort<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: isize, right: isize
     }
 }
 
-fn partition<'a>(rc: &'a Arc<Mutex<ShareWrapper>>, left: isize, right: isize) -> isize {
+fn partition<'a>(rc: &'a Arc<Mutex<Shared>>, left: isize, right: isize) -> isize {
     let pivot: u32 = rc.lock().unwrap().vec[right as usize];
     let mut t = left;
     for i in left..right {

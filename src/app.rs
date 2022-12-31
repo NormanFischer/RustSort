@@ -1,17 +1,15 @@
 
-use std::{sync::{Arc, Mutex, mpsc}, thread};
+use std::{sync::{Arc, Mutex}, thread};
 use opengl_graphics::GlGraphics;
 use piston::{RenderArgs, UpdateArgs, Key};
-use rand::{seq::SliceRandom, thread_rng};
-use crate::{sharewrapper::{ShareWrapper, Status}, sort::{self}};
-use crate::constants::BLACK;
+use crate::{constants::BLACK, sharewrapper::ShareWrapper, shared::{Shared, Status}, sort};
 use crate::constants::WHITE;
 use crate::constants::WIDTH;
 use crate::constants::HEIGHT;
 
 pub struct App {
     pub gl: GlGraphics,
-    pub sw: Arc<Mutex<ShareWrapper>>,
+    pub sw: ShareWrapper,
 }
 
 impl App {
@@ -20,7 +18,7 @@ impl App {
         self.gl.draw(args.viewport(), |c, gl| {
             clear(BLACK, gl);
 
-            let vec = &self.sw.lock().unwrap().vec;
+            let vec = &self.sw.arc.lock().unwrap().vec;
             let len = vec.len();
             let delta_width: f64 = (WIDTH as f64/ len as f64).into();
             let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
@@ -40,57 +38,38 @@ impl App {
     }
 
     pub fn press(&mut self, key: Key) {
-        let rc = self.sw.clone();
-        App::input(&rc, key)
+        self.input(key);
     }
 
-    fn input(rc: &Arc<Mutex<ShareWrapper>>, key: Key) {
+    fn input(&mut self, key: Key) {
         //Match sort commands
-        let rc = rc.clone();
+        let mut rc = self.sw.clone();
         if key == Key::D0 {
-            App::pause_unpause(&rc);
+            self.sw.pause_unpause();
         }
-        let _thread = thread::spawn(move || {
-            match key {
-                Key::Space => Self::shuffle(&rc),
-                //Process sorts
-                _ => App::sort_input(&rc, key),
-            };
-        });
+        let status = self.sw.get_status();
+        if status == Status::Paused {
+            let _thread = thread::spawn(move || {
+                match key {
+                    Key::Space => rc.shuffle(),
+                    //Process sorts
+                    _ => App::sort_input(rc, key),
+                };
+            });
+        }
+        
     }
 
-    fn sort_input(rc: &Arc<Mutex<ShareWrapper>>, key: Key) {
+    fn sort_input(mut sw: ShareWrapper, key: Key) {
+        let len = sw.get_len();
         match key { 
-            Key::D1 => sort::bubblesort(&rc),
-            Key::D2 => sort::selectionsort(&rc),
-            Key::D3 => sort::mergesort(&rc, 0, Self::get_len(&rc) - 1),
-            Key::D4 => sort::quicksort(&rc, 0, (Self::get_len(&rc) - 1) as isize),
+            Key::D1 => sort::bubblesort(&sw.arc),
+            Key::D2 => sort::selectionsort(&sw.arc),
+            Key::D3 => sort::mergesort(&sw.arc, 0, len - 1),
+            Key::D4 => sort::quicksort(&sw.arc, 0, (len - 1) as isize),
             _ => {},
         }
+        sw.arc.lock().unwrap().status = Status::Paused;
     }
 
-    fn pause_unpause(rc: &Arc<Mutex<ShareWrapper>>) {
-        if let Ok(mut guard) = rc.lock() {
-            match guard.status {
-                Status::Sorting => guard.status = Status::Paused,
-                Status::Paused => guard.status = Status::Sorting,
-            }
-        }
-    }
-
-    fn shuffle(rc: &Arc<Mutex<ShareWrapper>>) {
-        if let Ok(mut guard) = rc.lock() {
-            let vec = &mut guard.vec;
-            vec.shuffle(&mut thread_rng());
-        }
-    }
-
-    fn get_len(rc: &Arc<Mutex<ShareWrapper>>) -> usize {
-        if let Ok(guard) = rc.lock() {
-            let vec = &guard.vec;
-            return vec.len();
-        } else {
-            panic!();
-        }
-    }
 }
