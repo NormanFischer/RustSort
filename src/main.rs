@@ -12,13 +12,15 @@ mod constants;
 
 use std::sync::{Mutex, Arc};
 use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{GlGraphics, OpenGL};
+use graphics::glyph_cache::rusttype::GlyphCache;
+use opengl_graphics::{GlGraphics, OpenGL, TextureSettings, Filter};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderEvent, UpdateEvent};
 use piston::window::WindowSettings;
 use piston::{Button, PressEvent};
 use constants::WIDTH;
 use constants::HEIGHT;
+use constants::FONT;
 
 use crate::shared::{Status, Shared};
 use crate::sharewrapper::ShareWrapper;
@@ -35,7 +37,9 @@ fn is_sorted(vec: Vec<u32>) -> bool {
 fn main() {
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
+    
     let vector_size = 101;
+    
   
     // Create a Glutin window.
     let mut window: Window = WindowSettings::new("Sorting Algorithms", [WIDTH, HEIGHT])
@@ -44,23 +48,30 @@ fn main() {
         .resizable(true)
         .build()
         .unwrap();
+        
+    let mut gl = GlGraphics::new(opengl);
+    let texture_settings = TextureSettings::new().filter(Filter::Nearest);
+    let ref mut glyphs = GlyphCache::new(FONT, (), texture_settings)
+        .expect(&format!("failed to load font `{}`", FONT));
 
     // Create a new game and run it.
     let mut app = app::App {
-        gl: GlGraphics::new(opengl),
         sw: ShareWrapper {
                 arc: Arc::new(Mutex::new(
-                              Shared { vec: (1..vector_size).collect(), status: Status::Paused, tickrate: 1, current_idx: None}))},
+                              Shared { vec: (1..vector_size).collect(), status: Status::NotSorting, tickrate: 1000, current_idx: None}))},
     };
 
     println!("{:?}", app.sw.arc.lock().unwrap().vec);
+    app.sw.shuffle();
 
     let mut events = Events::new(EventSettings::new());
     
     while let Some(e) = events.next(&mut window) {
 
         if let Some(args) = e.render_args() {
-            app.render(&args);
+            gl.draw(args.viewport(), |c, g| {
+                app.render(glyphs, &c, g);
+            });
         }
 
         if let Some(args) = e.update_args() {
