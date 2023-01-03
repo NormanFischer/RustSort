@@ -22,7 +22,7 @@ use constants::WIDTH;
 use constants::HEIGHT;
 use constants::FONT;
 
-use crate::shared::{Status, Shared};
+use crate::shared::{Status, Shared, Sort};
 use crate::sharewrapper::ShareWrapper;
 
 fn is_sorted(vec: Vec<u32>) -> bool {
@@ -48,8 +48,9 @@ fn main() {
         .resizable(true)
         .build()
         .unwrap();
-        
+
     let mut gl = GlGraphics::new(opengl);
+    
     let texture_settings = TextureSettings::new().filter(Filter::Nearest);
     let ref mut glyphs = GlyphCache::new(FONT, (), texture_settings)
         .expect(&format!("failed to load font `{}`", FONT));
@@ -58,7 +59,7 @@ fn main() {
     let mut app = app::App {
         sw: ShareWrapper {
                 arc: Arc::new(Mutex::new(
-                              Shared { vec: (1..vector_size).collect(), status: Status::NotSorting, tickrate: 1000, current_idx: None}))},
+                              Shared { vec: (1..vector_size).collect(), status: Status::NotSorting, tickrate: 1, current_idx: None, current_sort: Sort::None}))},
     };
 
     println!("{:?}", app.sw.arc.lock().unwrap().vec);

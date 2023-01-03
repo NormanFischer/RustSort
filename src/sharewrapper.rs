@@ -2,7 +2,7 @@
 //Functions that allow safe access to shared resources
 
 use std::{sync::{Arc, Mutex}, usize};
-use crate::shared::{Shared, Status};
+use crate::shared::{Shared, Status, Sort};
 
 
 pub struct ShareWrapper {
@@ -10,7 +10,16 @@ pub struct ShareWrapper {
 }
 
 impl ShareWrapper {
+    pub fn get_vec(&self) -> Vec<u32> {
+        if let Ok(guard) = self.arc.lock() {
+            return guard.get_vec();
+        } else {
+            panic!("get_vec");
+        }
+    }
+
     //Obtain current status value from shared
+
     pub fn get_status(&mut self) -> Status {
         if let Ok(guard) = self.arc.lock() {
             guard.get_status()
@@ -89,9 +98,9 @@ impl ShareWrapper {
         }
     }
 
-    pub fn get_current_idx(&self) -> usize {
+    pub fn get_current_idx(&self) -> Option<usize> {
         if let Ok(guard) = self.arc.lock() {
-            return guard.get_current_idx().unwrap();
+            return guard.get_current_idx();
         } else {
             panic!("Error returning idx")
         }
@@ -102,6 +111,20 @@ impl ShareWrapper {
             return guard.get_tickrate();
         } else {
             panic!("Tickrate")
+        }
+    }
+
+    pub fn get_current_sort(&self) -> Sort {
+        if let Ok(guard) = self.arc.lock() {
+            return guard.get_current_sort();
+        } else {
+            panic!("get_current_sort");
+        }
+    }
+
+    pub fn set_current_sort(&mut self, sort: Sort) {
+        if let Ok(mut guard) = self.arc.lock() {
+            guard.set_current_sort(sort)
         }
     }
 
