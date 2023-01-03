@@ -1,7 +1,9 @@
 //Wrapper for shared resources
 //Functions that allow safe access to shared resources
 
-use std::{sync::{Arc, Mutex}, usize};
+use std::{sync::{Arc, Mutex, MutexGuard}, usize};
+use rand::{seq::SliceRandom, thread_rng};
+
 use crate::shared::{Shared, Status, Sort};
 
 
@@ -10,19 +12,11 @@ pub struct ShareWrapper {
 }
 
 impl ShareWrapper {
-    pub fn get_vec(&self) -> Vec<u32> {
-        if let Ok(guard) = self.arc.lock() {
-            return guard.get_vec();
-        } else {
-            panic!("get_vec");
-        }
-    }
 
     //Obtain current status value from shared
-
-    pub fn get_status(&mut self) -> Status {
+    pub fn get_status(&self) -> Status {
         if let Ok(guard) = self.arc.lock() {
-            guard.get_status()
+            guard.status
         } else {
             panic!("get_status")
         }
@@ -30,17 +24,17 @@ impl ShareWrapper {
 
     pub fn set_status(&mut self, status: Status) {
         if let Ok(mut guard) = self.arc.lock() {
-            guard.set_status(status);
+            guard.status = status;
         }
     }
 
     //Set pause status
     pub fn pause_unpause(&mut self) {
         if let Ok(mut guard) = self.arc.lock() {
-            let status = guard.get_status();
+            let status = &guard.status;
             match status {
-                Status::Sorting => guard.set_status(Status::Paused),
-                Status::Paused => guard.set_status(Status::Sorting),
+                Status::Sorting => guard.status = Status::Paused,
+                Status::Paused => guard.status = Status::Sorting,
                 Status::NotSorting => {},
             }
         }
@@ -48,10 +42,10 @@ impl ShareWrapper {
 
     pub fn increase_size(&mut self, delta: u32) {
         if let Ok(mut guard) = self.arc.lock() {
-            let status = guard.get_status();
-            let len = guard.get_len();
+            let status = &guard.status;
+            let len = guard.vec.len() as u32;
             match status {
-                Status::NotSorting => guard.resize(len as u32 + delta),
+                Status::NotSorting => guard.vec = (1..=len+delta).collect(),
                 _ => {},
             };
         }
@@ -59,18 +53,22 @@ impl ShareWrapper {
 
     pub fn decrease_size(&mut self, delta: u32) {
         if let Ok(mut guard) = self.arc.lock() {
-            let status = guard.get_status();
-            let len = guard.get_len();
+            let status = &guard.status;
+            let len = guard.vec.len() as u32;
             match status {
-                Status::NotSorting => guard.resize(len as u32 - delta),
+                Status::NotSorting => guard.vec = (1..=len-delta).collect(),
                 _ => {},
             };
         }
     }
 
-    pub fn get_idx(&mut self, idx:usize) -> u32 {
-        if let Ok(mut guard) = self.arc.lock() {
-            guard.get_idx(idx)
+    fn resize(&mut self, mut guard: MutexGuard<Shared>, new_size: u32,) {
+        guard.vec = (1..=new_size).collect();
+    }
+
+    pub fn get_idx(&self, idx:usize) -> u32 {
+        if let Ok(guard) = self.arc.lock() {
+            guard.vec[idx]
         } else {
             panic!("get_idx")
         }
@@ -79,14 +77,14 @@ impl ShareWrapper {
     //Shuffles shared vector
     pub fn shuffle(&mut self) {
         if let Ok(mut guard) = self.arc.lock() {
-            guard.shuffle();
+            guard.vec.shuffle(&mut thread_rng());
         }
     }
 
     //Get length of shared vector
-    pub fn get_len(&mut self) -> usize {
+    pub fn get_len(&self) -> usize {
         if let Ok(guard) = self.arc.lock() {
-            guard.get_len()
+            guard.vec.len()
         } else {
             panic!();
         }
@@ -94,13 +92,13 @@ impl ShareWrapper {
 
     pub fn set_current_idx(&mut self, idx: Option<usize>) {
         if let Ok(mut guard) = self.arc.lock() {
-            guard.set_current_idx(idx);
+            guard.current_idx = idx;
         }
     }
 
     pub fn get_current_idx(&self) -> Option<usize> {
         if let Ok(guard) = self.arc.lock() {
-            return guard.get_current_idx();
+            guard.current_idx
         } else {
             panic!("Error returning idx")
         }
@@ -108,7 +106,7 @@ impl ShareWrapper {
 
     pub fn get_tickrate(&self) -> u64 {
         if let Ok(guard) = self.arc.lock() {
-            return guard.get_tickrate();
+            guard.tickrate
         } else {
             panic!("Tickrate")
         }
@@ -116,7 +114,7 @@ impl ShareWrapper {
 
     pub fn get_current_sort(&self) -> Sort {
         if let Ok(guard) = self.arc.lock() {
-            return guard.get_current_sort();
+            guard.current_sort
         } else {
             panic!("get_current_sort");
         }
@@ -124,7 +122,27 @@ impl ShareWrapper {
 
     pub fn set_current_sort(&mut self, sort: Sort) {
         if let Ok(mut guard) = self.arc.lock() {
-            guard.set_current_sort(sort)
+            guard.current_sort = sort
+        }
+    }
+
+    pub fn increment_comparions(&self) {
+        if let Ok(mut guard) = self.arc.lock() {
+            guard.comparisons = guard.comparisons + 1;
+        }
+    }
+
+    pub fn get_comparsions(&self) -> u64 {
+        if let Ok(guard) = self.arc.lock() {
+            guard.comparisons
+        } else {
+            panic!("get_comparisons")
+        }
+    }
+
+    pub fn reset_comparions(&self) {
+        if let Ok(mut guard) = self.arc.lock() {
+            guard.comparisons = 0;
         }
     }
 

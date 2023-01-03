@@ -21,32 +21,30 @@ fn tick_checker(sw: &mut ShareWrapper) {
         };
     }
     //Tick
-    thread::sleep(Duration::from_micros(sw.get_tickrate()));
+    thread::sleep(Duration::from_nanos(1));
 }
 
-
 pub fn bubblesort(sw: &mut ShareWrapper) {
-    sw.set_status(Status::Sorting);
     sw.set_current_sort(Sort::Bubblesort);
     let n = sw.get_len();
     for i in 0..n-1 {
         for j in 0..n-i-1 {
+            sw.increment_comparions();
             sw.set_current_idx(Some(j));
-                if let Ok(mut guard) = sw.arc.lock() {
-                    let vec = &mut guard.vec;
-                    if vec[j] > vec[j+1] {
-                        vec.swap(j, j+1);
-                    }
+            if let Ok(mut guard) = sw.arc.lock() {
+                let vec = &mut guard.vec;
+                if vec[j] > vec[j+1] {
+                    vec.swap(j, j+1);
                 }
-                tick_checker(sw);
             }
+            tick_checker(sw);
         }
+    }
     sw.set_current_idx(None);
 }
 
 
 pub fn selectionsort(sw: &mut ShareWrapper) {
-    sw.set_status(Status::Sorting);
     sw.set_current_sort(Sort::Selectionsort);
     let n = sw.get_len();
     for i in 0..n-1 {
@@ -70,7 +68,6 @@ pub fn selectionsort(sw: &mut ShareWrapper) {
 
 
 pub fn mergesort(sw: &mut ShareWrapper, left: usize, right: usize) {
-    sw.set_status(Status::Sorting);
     sw.set_current_sort(Sort::Mergesort);
     if left < right {
         let m = (left + right) / 2;
@@ -149,7 +146,6 @@ pub fn mergesort(sw: &mut ShareWrapper, left: usize, right: usize) {
 }
 
 pub fn quicksort<'a>(sw: &'a mut ShareWrapper, left: isize, right: isize) {
-    sw.set_status(Status::Sorting);
     sw.set_current_sort(Sort::Quicksort);
     let pivotidx: isize;
     if left < right {

@@ -17,7 +17,7 @@ use opengl_graphics::{GlGraphics, OpenGL, TextureSettings, Filter};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderEvent, UpdateEvent};
 use piston::window::WindowSettings;
-use piston::{Button, PressEvent};
+use piston::{Button, PressEvent, EventLoop};
 use constants::WIDTH;
 use constants::HEIGHT;
 use constants::FONT;
@@ -59,7 +59,9 @@ fn main() {
     let mut app = app::App {
         sw: ShareWrapper {
                 arc: Arc::new(Mutex::new(
-                              Shared { vec: (1..vector_size).collect(), status: Status::NotSorting, tickrate: 1, current_idx: None, current_sort: Sort::None}))},
+                              Shared { vec: (1..vector_size).collect(), status: Status::NotSorting, 
+                                       tickrate: 1, current_idx: None, 
+                                       current_sort: Sort::None, comparisons: 0}))},
     };
 
     println!("{:?}", app.sw.arc.lock().unwrap().vec);
