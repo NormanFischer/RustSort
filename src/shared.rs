@@ -51,13 +51,13 @@ pub struct Shared{
 }
 
 impl Shared{
-    
+
     pub fn get_vec(&self) -> Vec<u32> {
         return self.vec.clone();
     }
 
     pub fn resize(&mut self, new_size: u32) {
-        self.vec = (1..new_size).collect();
+        self.vec = (1..=new_size).collect();
     }
 
     pub fn get_len(&self) -> usize {

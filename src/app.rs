@@ -21,14 +21,19 @@ impl App {
             let vec = self.sw.get_vec();
             let len = self.sw.get_len();
             let status = self.sw.get_status();
-            let sort_txt = self.sw.get_current_sort(); 
+            let current_sort = self.sw.get_current_sort();
+            let tickrate = self.sw.get_tickrate(); 
             let delta_width: f64 = (WIDTH as f64/ len as f64).into();
             let delta_height: f64 = (HEIGHT as f64/ len as f64).into();
             let status_txt: &str = &format!("Status: {}", status);
-            let sort_txt: &str = &format!("Sort: {}", sort_txt);
+            let sort_txt: &str = &format!("Sort: {}", current_sort);
+            let length_txt: &str = &format!("Array length: {}", len);
+            let speed_txt: &str = &format!("Speed: {}", tickrate);
             let font_size = 24;
-            text(WHITE, font_size, status_txt, glyphs, c.transform.trans(0.0, 24.0), g).expect("Failed rendering text");
-            text(WHITE, font_size, sort_txt, glyphs, c.transform.trans(0.0, 48.0), g).expect("Failed rendering text");
+            text(WHITE, font_size, status_txt, glyphs, c.transform.trans(0.0, 24.0).zoom(0.5), g).expect("Failed rendering text");
+            text(WHITE, font_size, sort_txt, glyphs, c.transform.trans(0.0, 48.0).zoom(0.5), g).expect("Failed rendering text");
+            text(WHITE, font_size, length_txt, glyphs, c.transform.trans(0.0, 72.0).zoom(0.5), g).expect("Failed rendering text");
+            text(WHITE, font_size, speed_txt, glyphs, c.transform.trans(0.0, 96.0).zoom(0.5), g).expect("Failed rendering text");
             for i in 0..len {
                 let current_color = self.sw.get_current_idx(); 
                 let curr = vec[i] as f64;

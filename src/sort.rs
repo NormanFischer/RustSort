@@ -21,7 +21,7 @@ fn tick_checker(sw: &mut ShareWrapper) {
         };
     }
     //Tick
-    
+    thread::sleep(Duration::from_micros(sw.get_tickrate()));
 }
 
 

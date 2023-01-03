@@ -50,7 +50,7 @@ fn main() {
         .unwrap();
 
     let mut gl = GlGraphics::new(opengl);
-    
+
     let texture_settings = TextureSettings::new().filter(Filter::Nearest);
     let ref mut glyphs = GlyphCache::new(FONT, (), texture_settings)
         .expect(&format!("failed to load font `{}`", FONT));
